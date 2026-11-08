@@ -1,5 +1,4 @@
-# CODIGO FEIO DE PROPOSITO (TF 11). Funciona, mas viola quase todas as regras do
-# Object Calisthenics. A missao e consertar SEM mudar o que ele imprime.
+#Codigo consertado pronto para o uso, com todas as classes e funções implementadas corretamente.
 # Rodar no terminal: python3 loja.py
 
 
