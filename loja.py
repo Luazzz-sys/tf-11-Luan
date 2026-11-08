@@ -89,24 +89,36 @@ class Endereco:
         return self._cidade
 
 
+# TipoNormal: cliente comum, que nao ganha desconto nenhum.
+class TipoNormal:
+    def desconto_sobre(self, valor):
+        return valor.percentual(0)
+
+
+# TipoVip: cliente vip, que ganha 10% de desconto.
+class TipoVip:
+    def desconto_sobre(self, valor):
+        return valor.percentual(10)
+
+
+# TipoFuncionario: funcionario da loja, que ganha 20% de desconto.
+class TipoFuncionario:
+    def desconto_sobre(self, valor):
+        return valor.percentual(20)
+
+
 # Cliente: junta a pessoa, o endereco e o tipo que define o desconto dela.
 class Cliente:
     def __init__(self, pessoa, endereco, tipo):
         self._pessoa = pessoa
         self._endereco = endereco
-        self._tipo = tipo      # "N" normal, "V" vip, "F" funcionario
+        self._tipo = tipo      # objeto TipoNormal, TipoVip ou TipoFuncionario
 
     def descrever(self):
         return self._pessoa.descrever() + " - " + self._endereco.descrever()
 
     def calcular_desconto(self, total):
-        if self._tipo == "V":
-            desconto = total.percentual(10)
-        elif self._tipo == "F":
-            desconto = total.percentual(20)
-        else:
-            desconto = Dinheiro(0)
-        return desconto
+        return self._tipo.desconto_sobre(total)
 
 
 # Produto: o que a loja vende, com o nome e o preco guardados uma unica vez.
@@ -168,21 +180,18 @@ class Pedido:
         self._itens.adicionar(ItemDoPedido(produto, quantidade))
 
     def pagar(self):
-        if self._status.esta_aberto():
-            if not self._itens.esta_vazia():
-                self._status = Status("P")
-                return True
-            else:
-                return False
-        else:
+        if not self._status.esta_aberto():
             return False
+        if self._itens.esta_vazia():
+            return False
+        self._status = Status("P")
+        return True
 
     def cancelar(self):
-        if self._status.esta_aberto():
-            self._status = Status("C")
-            return True
-        else:
+        if not self._status.esta_aberto():
             return False
+        self._status = Status("C")
+        return True
 
     def esta_aberto(self):
         return self._status.esta_aberto()
@@ -197,18 +206,19 @@ class Pedido:
         return self.calcular_total().subtrair(self.calcular_desconto())
 
     def calcular_valor_arrecadado(self):
+        valor = Dinheiro(0)
         if self._status.esta_pago():
-            return self.calcular_valor_a_pagar()
-        else:
-            return Dinheiro(0)
+            valor = self.calcular_valor_a_pagar()
+        return valor
 
     def imprimir(self, numero):
         print("Pedido", numero, "-", self._cliente.descrever())
         print("  status:", self._status.descricao())
         self._itens.imprimir()
-        if not self._itens.esta_vazia():
-            print("  total:", self.calcular_total(), "| desconto:", self.calcular_desconto(),
-                  "| a pagar:", self.calcular_valor_a_pagar())
+        if self._itens.esta_vazia():
+            return
+        print("  total:", self.calcular_total(), "| desconto:", self.calcular_desconto(),
+              "| a pagar:", self.calcular_valor_a_pagar())
 
 
 # Pedidos: guarda todos os pedidos da loja pelo numero e responde sobre o conjunto deles.
@@ -232,11 +242,8 @@ class Pedidos:
         return total
 
     def contar_pedidos_abertos(self):
-        quantidade = 0
-        for pedido in self._pedidos.values():
-            if pedido.esta_aberto():
-                quantidade = quantidade + 1
-        return quantidade
+        abertos = [pedido for pedido in self._pedidos.values() if pedido.esta_aberto()]
+        return len(abertos)
 
 
 # --- o roteiro da loja (o TF mantem esta saida identica) -----------------------
@@ -257,29 +264,29 @@ caneta = Produto("Caneta", Dinheiro(250))
 livro = Produto("Livro", Dinheiro(8950))
 fone = Produto("Fone", Dinheiro(6000))
 
-cliente_ana = criar_cliente_ou_recusar(1, "Ana Souza", "12345678901", "ana@mail.com", "Rua das Flores, 10", "Sorocaba", "18010000", "V")
+cliente_ana = criar_cliente_ou_recusar(1, "Ana Souza", "12345678901", "ana@mail.com", "Rua das Flores, 10", "Sorocaba", "18010000", TipoVip())
 primeiro_pedido_da_ana = pedidos.criar_pedido(1, cliente_ana)
 primeiro_pedido_da_ana.adicionar_item(caderno, 2)
 primeiro_pedido_da_ana.adicionar_item(caneta, 5)
 
 # Pedidos 2, 4 e 7: o cliente e recusado, entao nao vira pedido.
-criar_cliente_ou_recusar(2, "Bruno Lima", "123", "bruno@mail.com", "Av. Central, 200", "Votorantim", "18110000", "N")
+criar_cliente_ou_recusar(2, "Bruno Lima", "123", "bruno@mail.com", "Av. Central, 200", "Votorantim", "18110000", TipoNormal())
 
 segundo_pedido_da_ana = pedidos.criar_pedido(3, cliente_ana)
 segundo_pedido_da_ana.adicionar_item(livro, 1)
 
-criar_cliente_ou_recusar(4, "Carla Dias", "98765432100", "carla.mail.com", "Rua do Sol, 55", "Sorocaba", "18020000", "F")
+criar_cliente_ou_recusar(4, "Carla Dias", "98765432100", "carla.mail.com", "Rua do Sol, 55", "Sorocaba", "18020000", TipoFuncionario())
 
-cliente_diego = criar_cliente_ou_recusar(5, "Diego Rocha", "11122233344", "diego@mail.com", "Rua Nova, 7", "Itu", "13300000", "N")
+cliente_diego = criar_cliente_ou_recusar(5, "Diego Rocha", "11122233344", "diego@mail.com", "Rua Nova, 7", "Itu", "13300000", TipoNormal())
 pedido_do_diego = pedidos.criar_pedido(5, cliente_diego)
 
-cliente_eva = criar_cliente_ou_recusar(6, "Eva Nunes", "55566677788", "eva@mail.com", "Alameda Azul, 1", "Itu", "13300001", "F")
+cliente_eva = criar_cliente_ou_recusar(6, "Eva Nunes", "55566677788", "eva@mail.com", "Alameda Azul, 1", "Itu", "13300001", TipoFuncionario())
 pedido_da_eva = pedidos.criar_pedido(6, cliente_eva)
 pedido_da_eva.adicionar_item(fone, 1)
 
-criar_cliente_ou_recusar(7, "Fabio Costa", "99988877766", "fabio@mail.com", "Rua Velha, 3", "Itu", "123", "N")
+criar_cliente_ou_recusar(7, "Fabio Costa", "99988877766", "fabio@mail.com", "Rua Velha, 3", "Itu", "123", TipoNormal())
 
-cliente_gil = criar_cliente_ou_recusar(8, "Gil Alves", "44455566677", "gil@mail.com", "Rua do Meio, 9", "Sorocaba", "18030000", "N")
+cliente_gil = criar_cliente_ou_recusar(8, "Gil Alves", "44455566677", "gil@mail.com", "Rua do Meio, 9", "Sorocaba", "18030000", TipoNormal())
 pedido_do_gil = pedidos.criar_pedido(8, cliente_gil)
 pedido_do_gil.adicionar_item(fone, 2)
 
