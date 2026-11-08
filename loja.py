@@ -82,16 +82,28 @@ class Status:
             return "cancelado"
 
 
-# Cliente: junta todos os dados de uma pessoa que compra na loja. Existe UM por cliente.
-class Cliente:
-    def __init__(self, nome, cpf, email, rua, cidade, cep, tipo):
+# Pessoa: ...escreva com as suas palavras...
+class Pessoa:
+    def __init__(self, nome, cpf, email):
         self.nome = nome
         self.cpf = cpf
         self.email = email
+
+
+# Endereco: ...escreva com as suas palavras...
+class Endereco:
+    def __init__(self, rua, cidade, cep):
         self.rua = rua
         self.cidade = cidade
         self.cep = cep
-        self.tipo = tipo          # tipo do cliente: "N" normal, "V" vip, "F" funcionario
+
+
+# Cliente: ...escreva com as suas palavras...
+class Cliente:
+    def __init__(self, pessoa, endereco, tipo):
+        self.pessoa = pessoa
+        self.endereco = endereco
+        self.tipo = tipo      # "N" normal, "V" vip, "F" funcionario
 
 
 # Produto: o que a loja vende, com o nome e o preco guardados uma unica vez.
@@ -156,7 +168,7 @@ class Pedidos:
 
     def imprimir_relatorio(self):
         for numero, pedido in self._pedidos.items():
-            print("Pedido", numero, "-", pedido.cliente.nome, "-", pedido.cliente.cidade)
+            print("Pedido", numero, "-", pedido.cliente.pessoa.nome, "-", pedido.cliente.endereco.cidade)
             print("  status:", pedido.get_status().descrever())
             pedido.itens.imprimir()
             if not pedido.itens.esta_vazia():
@@ -223,10 +235,9 @@ def cancelar(pedido):
 # --- o roteiro da loja (o TF mantem esta saida identica) -----------------------
 def criar_cliente_ou_recusar(numero_do_pedido, nome, cpf, email, rua, cidade, cep, tipo):
     try:
-        email_validado = Email(email)
-        cpf_validado = Cpf(cpf)
-        cep_validado = Cep(cep)
-        return Cliente(nome, cpf_validado, email_validado, rua, cidade, cep_validado, tipo)
+        pessoa = Pessoa(nome, Cpf(cpf), Email(email))
+        endereco = Endereco(rua, cidade, Cep(cep))
+        return Cliente(pessoa, endereco, tipo)
     except ValueError as erro:
         print("pedido", numero_do_pedido, "recusado:", erro)
         return None
